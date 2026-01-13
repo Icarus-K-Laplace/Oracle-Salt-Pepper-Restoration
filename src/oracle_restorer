@@ -1,0 +1,38 @@
+import numpy as np
+from .specialist import SaltPepperSpecialist
+
+class OracleRestorer:
+    """
+    Two-stage restoration pipeline guided by oracle detection.
+    """
+    def __init__(self):
+        self.specialist = SaltPepperSpecialist()
+    
+    def restore(self, noisy_img):
+        print("=== Oracle-Guided Restoration ===")
+        
+        # Stage 1: Perfect Detection & Fast Repair
+        print("[Stage 1] Oracle detection...")
+        mask = self.specialist.perfect_detection(noisy_img)
+        stage1 = self.specialist.fast_median_repair(noisy_img, mask)
+        
+        # Stage 2: Residual Refinement
+        print("[Stage 2] Residual analysis...")
+        # Check for remaining extremes (rare but possible)
+        residual_mask = self.specialist.perfect_detection(stage1)
+        
+        if np.sum(residual_mask) > 0:
+            print(f"  - Refining {np.sum(residual_mask)} residual pixels...")
+            final = stage1.copy()
+            coords = np.argwhere(residual_mask == 1)
+            
+            for x, y in coords:
+                # Use larger adaptive window for difficult residuals
+                for win in [7, 9]:
+                    nb = self.specialist.get_neighborhood(stage1, x, y, win)
+                    if nb.size > 0:
+                        final[x, y] = np.median(nb)
+                        break
+            return final
+        else:
+            return stage1

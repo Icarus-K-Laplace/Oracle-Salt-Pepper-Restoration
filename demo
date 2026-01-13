@@ -1,0 +1,25 @@
+import cv2
+import numpy as np
+from src.oracle_restorer import OracleRestorer
+
+def main():
+    # 1. Synthetic Data
+    img = np.zeros((256, 256), dtype=np.uint8)
+    cv2.circle(img, (128, 128), 60, 200, -1)
+    
+    # 2. Add Noise (20%)
+    noisy = img.copy()
+    n = int(img.size * 0.2)
+    coords = np.random.permutation(img.size)[:n]
+    noisy.flat[coords] = np.random.choice([0, 255], n)
+    
+    # 3. Restore
+    restorer = OracleRestorer()
+    result = restorer.restore(noisy)
+    
+    # 4. Save
+    cv2.imwrite("oracle_result.png", np.hstack([img, noisy, result]))
+    print("Saved to oracle_result.png")
+
+if __name__ == "__main__":
+    main()
